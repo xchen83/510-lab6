@@ -9,56 +9,77 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Set Streamlit page configuration
 st.set_page_config(
-    page_title="Chat with the PDF",
-    page_icon="🦙",
+    page_title="Resume & Cover Letter Feedback",
+    page_icon="📄",
     layout="centered",
     initial_sidebar_state="auto",
     menu_items=None,
 )
 
-if "messages" not in st.session_state.keys():  # Initialize the chat messages history
+# Initialize the chat messages history
+if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Ask me a question about your document!"}
+        {"role": "assistant", "content": "Welcome! Upload your resume or cover letter for feedback."}
     ]
 
-uploaded_file = st.file_uploader("Upload a file")
+# File upload section
+st.sidebar.header("Upload Document")
+uploaded_file = st.sidebar.file_uploader("Choose a file", type=["pdf"])
+
+# Initialize OpenAI model
+llm = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+    base_url=os.getenv("OPENAI_API_BASE"),
+    model="gpt-3.5-turbo",
+    temperature=0.0,
+    system_prompt="You are an expert on evaluating and giving feedback to resumes and cover letters. Provide detailed answers to these documents. Use the document to support your answers.",
+)
+
+# Initialize VectorStoreIndex
+index = None
+
+# Process uploaded file and create chat engine
 if uploaded_file:
     bytes_data = uploaded_file.read()
-    with NamedTemporaryFile(delete=False) as tmp:  # open a named temporary file
-        tmp.write(bytes_data)  # write data from the uploaded file into it
-        with st.spinner(
-            text="Loading and indexing the Streamlit docs – hang tight! This should take 1-2 minutes."
-        ):
+    with NamedTemporaryFile(delete=False) as tmp:
+        tmp.write(bytes_data)
+        with st.spinner("Loading and indexing the document..."):
             reader = PDFReader()
             docs = reader.load_data(tmp.name)
-            llm = OpenAI(
-                model="gpt-3.5-turbo",
-                temperature=0.0,
-                system_prompt="You are an expert on the content of the document, provide detailed answers to the questions. Use the document to support your answers.",
-            )
             index = VectorStoreIndex.from_documents(docs)
-    os.remove(tmp.name)  # remove temp file
+    os.remove(tmp.name)
 
-    if "chat_engine" not in st.session_state.keys():  # Initialize the chat engine
+    # Initialize chat engine
+    if index:
         st.session_state.chat_engine = index.as_chat_engine(
             chat_mode="condense_question", verbose=False, llm=llm
         )
 
-if prompt := st.chat_input(
-    "Your question"
-):  # Prompt for user input and save to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
+# Chat interface section
+st.title("Resume & Cover Letter Feedback")
+if uploaded_file:
+    st.subheader("Document Upload Complete")
+    st.markdown("You can now ask questions or provide prompts for feedback.")
+    st.sidebar.write("✅ Document uploaded successfully.")
+else:
+    st.sidebar.write("❗ Please upload a document.")
 
-for message in st.session_state.messages:  # Display the prior chat messages
-    with st.chat_message(message["role"]):
-        st.write(message["content"])
+# User input section
+user_input = st.text_input("Ask me anything or provide feedback:", "")
+if user_input:
+    st.session_state.messages.append({"role": "user", "content": user_input})
 
-# If last message is not from assistant, generate a new response
-if st.session_state.messages[-1]["role"] != "assistant":
-    with st.chat_message("assistant"):
+    # Generate response from chat engine
+    if index:
         with st.spinner("Thinking..."):
-            response = st.session_state.chat_engine.stream_chat(prompt)
+            response = st.session_state.chat_engine.stream_chat(user_input)
             st.write_stream(response.response_gen)
             message = {"role": "assistant", "content": response.response}
-            st.session_state.messages.append(message)  # Add response to message history
+            st.session_state.messages.append(message)
+
+# Display chat messages
+for message in st.session_state.messages:
+    with st.container():
+        st.markdown(f"**{message['role'].capitalize()}:** {message['content']}")
