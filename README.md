@@ -19,4 +19,4 @@
 
 
 ## Reflections
-- This week, I have learned how to use the assigned API to connect with the streamlit app. Since last week, I have learned how to set up the environment, this time it took me less time when finding the correct virtual environment.
+- This week, I have learned how to use the assigned API to connect with the streamlit app. Since last week, I have learned how to set up the environment, this time it took me less time finding the correct virtual environment.
