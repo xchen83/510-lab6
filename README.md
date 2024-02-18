@@ -12,7 +12,11 @@
 
 ## Lessons Learned
 - How to create a chatbot with streamlit
-- How to add an OpenAI API in the app
+- How to add an OpenAI API and build a chatbot app
 
 ## Questions / Uncertainties
 - Does the app we are creating contains machine learning? How  does the ChatGPT learn?
+
+
+## Reflections
+- This week, I have learned how to use the assigned API to connect with the streamlit app. Since last week, I have learned how to set up the environment, this time it took me less time when finding the correct virtual environment.
