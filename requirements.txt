@@ -4,4 +4,3 @@ openai
 llama-index
 nltk
 pypdf2
-hupper
